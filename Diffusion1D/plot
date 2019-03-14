@@ -1,0 +1,33 @@
+#!/bin/sh
+
+GNUPLOT=gnuplot
+script="plot.gp"
+
+if [ -e $script ]; then
+    rm -f $script
+fi
+
+echo "
+# Copyright(C) 2016 Western University
+#
+# Plot the numerical solution u(x,t) of the heat equation
+#
+#     u  = au  ,  x in [-L, L], u(x,0) = f(x), u(-L,t) = u(L,t) = 0.
+#      t     xx
+#
+# using gnuplot." > $script
+
+echo "" >> $script
+echo "set yrang[0:1]" >> $script
+echo "set nokey" >> $script
+echo "set term X11" >> $script
+echo "" >> $script
+
+ofiles=`ls output*.dat`
+
+for f in $ofiles; do
+    echo "plot \"$f\" using 1:2 w line" >> $script
+    echo "pause -1 \"Hit return to exit.\"" >> $script
+done
+
+$GNUPLOT $script
