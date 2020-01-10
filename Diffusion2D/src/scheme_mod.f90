@@ -1,4 +1,8 @@
-module diffusion_scheme
+module scheme_mod
+
+use namelist_mod
+
+implicit none
 
 private
 
@@ -9,11 +13,10 @@ public full_periodic_boundary_condition
 
 contains
 
-subroutine diffusion_split(h_old, h_tend, num_cells, diffusion_order, dx, dy, halo)
-  implicit none
-   integer, intent(in) :: num_cells, diffusion_order, halo
-   real, intent(in)  :: h_old(1-halo:num_cells+halo, 1-halo:num_cells+halo), dx, dy
-   real, intent(out) :: h_tend(1:num_cells, 1:num_cells)
+subroutine diffusion_split(h_old, h_tend, dx, dy)
+
+   real, intent(in)  :: h_old(1-halo:nx+halo, 1-halo:ny+halo), dx, dy
+   real, intent(out) :: h_tend(1:nx, 1:ny)
 
    real, allocatable :: hx_tend(:,:), &
                         hy_tend(:,:)
@@ -23,32 +26,32 @@ subroutine diffusion_split(h_old, h_tend, num_cells, diffusion_order, dx, dy, ha
   
    integer :: i, j, order, sign 
 
-   allocate(hx_tend(1:num_cells, 1:num_cells))
-   allocate(hy_tend(1:num_cells, 1:num_cells))
-   allocate(hx_tmp(1-halo:num_cells+halo, 1-halo:num_cells+halo))
-   allocate(hy_tmp(1-halo:num_cells+halo, 1-halo:num_cells+halo))
+   allocate(hx_tend(1:nx, 1:ny))
+   allocate(hy_tend(1:nx, 1:ny))
+   allocate(hx_tmp(1-halo:nx+halo, 1-halo:ny+halo))
+   allocate(hy_tmp(1-halo:nx+halo, 1-halo:ny+halo))
  
     hx_tmp(:,:) = h_old(:,:)
     hy_tmp(:,:) = h_old(:,:)
 
-    do j = 1, num_cells
+    do j = 1, ny
       do order = 1, diffusion_order / 2
-        do i = 1, num_cells
+        do i = 1, nx
           hx_tend(i,j) = (hx_tmp(i+1,j) - 2 * hx_tmp(i,j) + hx_tmp(i-1,j)) / (dx**2)            
         end do
         if(order /= diffusion_order / 2) then
-          hx_tmp(1:num_cells,j) = hx_tend(1:num_cells,j)
+          hx_tmp(1:nx,j) = hx_tend(1:nx,j)
         end if
       end do
     end do
 
-    do i = 1, num_cells
+    do i = 1, nx
       do order = 1, diffusion_order / 2
-        do j = 1, num_cells
+        do j = 1, ny
           hy_tend(i,j) = (hy_tmp(i,j+1) - 2 * hy_tmp(i,j) + hy_tmp(i,j-1)) / (dy**2)            
         end do
         if(order /= diffusion_order / 2) then
-          hy_tmp(i,1:num_cells) = hy_tend(i,1:num_cells)
+          hy_tmp(i,1:ny) = hy_tend(i,1:ny)
         end if
       end do
     end do
@@ -57,34 +60,32 @@ subroutine diffusion_split(h_old, h_tend, num_cells, diffusion_order, dx, dy, ha
     deallocate(hx_tmp,hy_tmp, hx_tend, hy_tend)
 end subroutine diffusion_split
 
-subroutine diffusion_direct(h_old, h_tend, num_cells, diffusion_order, dx, dy, halo)
-    implicit none
-   real, intent(in)  :: h_old(1-halo:num_cells+halo, 1-halo:num_cells+halo), dx, dy
-   real, intent(out) :: h_tend(1:num_cells, 1:num_cells)
-   integer, intent(in) :: num_cells, diffusion_order, halo
+subroutine diffusion_direct(h_old, h_tend, dx, dy)
+
+   real, intent(in)  :: h_old(1-halo:nx+halo, 1-halo:ny+halo), dx, dy
+   real, intent(out) :: h_tend(1:nx, 1:ny)
    integer :: i, j, order
-   real :: h_tmp(1-halo:num_cells+halo, 1-halo:num_cells+halo)
+   real :: h_tmp(1-halo:nx+halo, 1-halo:ny+halo)
 
    h_tmp(:,:) = h_old(:,:)
    do order = 1, diffusion_order / 2
-      do j = 1, num_cells
-         do i = 1, num_cells
+      do j = 1, ny
+         do i = 1, nx
             h_tend(i,j) = (h_tmp(i+1,j) - 2 * h_tmp(i,j) + h_tmp(i-1,j)) / (dx**2) +&
                           (h_tmp(i,j+1) - 2 * h_tmp(i,j) + h_tmp(i,j-1)) / (dy**2)
          end do
       end do 
       if(order /= diffusion_order / 2) then
-        h_tmp(1:num_cells, 1:num_cells) = h_tend(1:num_cells, 1:num_cells)
+        h_tmp(1:nx, 1:ny) = h_tend(1:nx, 1:ny)
       end if
     end do
     return
 end subroutine diffusion_direct
 
-subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, halo)
-   implicit none
-   real, intent(in)  :: h_old(1-halo:num_cells+halo, 1-halo:num_cells+halo), dx, dy
-   real, intent(out) :: h_tend(1:num_cells, 1:num_cells)
-   integer, intent(in) :: num_cells, diffusion_order, halo 
+subroutine diffusion_limiter(h_old, h_tend, dx, dy)
+
+   real, intent(in)  :: h_old(1-halo:nx+halo, 1-halo:ny+halo), dx, dy
+   real, intent(out) :: h_tend(1:nx, 1:ny)
 
    real, allocatable :: hx_tend(:,:), &
                         hy_tend(:,:)
@@ -97,20 +98,20 @@ subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, 
                         half_h_grad_y(:,:)
    integer :: i, j, order, sign 
 
-   allocate(hx_tend(1-halo:num_cells+halo, 1-halo:num_cells+halo))
-   allocate(hy_tend(1-halo:num_cells+halo, 1-halo:num_cells+halo))
-   allocate(hx_tmp(1-halo:num_cells+halo, 1-halo:num_cells+halo))
-   allocate(hy_tmp(1-halo:num_cells+halo, 1-halo:num_cells+halo))
-   allocate(half_grad_x(0:num_cells, 1:num_cells))
-   allocate(half_grad_y(1:num_cells, 0:num_cells))
-   allocate(half_h_grad_x(0:num_cells, 1:num_cells))
-   allocate(half_h_grad_y(1:num_cells, 0:num_cells))
+   allocate(hx_tend(1-halo:nx+halo, 1-halo:ny+halo))
+   allocate(hy_tend(1-halo:nx+halo, 1-halo:ny+halo))
+   allocate(hx_tmp (1-halo:nx+halo, 1-halo:ny+halo))
+   allocate(hy_tmp (1-halo:nx+halo, 1-halo:ny+halo))
+   allocate(half_grad_x  (0:nx, 1:ny))
+   allocate(half_grad_y  (1:nx, 0:ny))
+   allocate(half_h_grad_x(0:nx, 1:ny))
+   allocate(half_h_grad_y(1:nx, 0:ny))
 
     ! 1) Calculate even order laplacian
    hx_tmp(:,:) = h_old(:,:)
-   do j = 1, num_cells
+   do j = 1, ny
       do order = 1, diffusion_order / 2 -1
-         do i = 0, num_cells+1
+         do i = 0, nx+1
             hx_tend(i,j) = (hx_tmp(i+1,j) - 2 * hx_tmp(i,j) + hx_tmp(i-1,j)) / (dx**2)            
          end do
          if(order /= diffusion_order / 2 - 1) then
@@ -120,9 +121,9 @@ subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, 
    end do
 
    hy_tmp(:,:) = h_old(:,:)
-   do i = 1, num_cells
+   do i = 1, nx
       do order = 1, diffusion_order / 2 -1
-         do j = 0, num_cells+1
+         do j = 0, ny+1
             hy_tend(i,j) = (hy_tmp(i,j+1) - 2 * hy_tmp(i,j) + hy_tmp(i,j-1)) / (dy**2)            
          end do
          if(order /= diffusion_order / 2 - 1) then
@@ -132,25 +133,25 @@ subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, 
    end do 
 
    ! 2) Calculate gradient of laplcain above 
-   do j = 1, num_cells
-      do i = 0, num_cells
+   do j = 1, ny
+      do i = 0, nx
          half_grad_x(i,j) = (hx_tend(i+1,j) - hx_tend(i,j)) / dx
       end do 
    end do 
-   do i = 1, num_cells
-      do j = 0, num_cells
+   do i = 1, nx
+      do j = 0, ny
          half_grad_y(i,j) = (hy_tend(i,j+1) - hy_tend(i,j)) / dy
       end do 
    end do
    
    ! 3) Calculate gradient of the variable be diffused 
-   do j = 1, num_cells
-      do i = 0, num_cells
+   do j = 1, ny
+      do i = 0, nx
          half_h_grad_x(i,j) = (h_old(i+1,j) - h_old(i,j)) / dx
       end do 
    end do 
-   do i = 1, num_cells
-      do j = 0, num_cells
+   do i = 1, nx
+      do j = 0, ny
          half_h_grad_y(i,j) = (h_old(i,j+1) - h_old(i,j)) / dy
       end do 
    end do
@@ -158,15 +159,15 @@ subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, 
    !4) decide the sign of diffusion flux to be zero or not
    sign = (-1)**(diffusion_order / 2 + 1)
 
-   do j = 1, num_cells
-      do i = 0, num_cells
+   do j = 1, ny
+      do i = 0, nx
          if (sign * half_grad_x(i,j) * half_h_grad_x(i,j) <= 0) then
             half_grad_x(i,j) = 0.0
          end if 
       end do 
    end do 
-   do i = 1, num_cells
-      do j = 0, num_cells
+   do i = 1, nx
+      do j = 0, ny
          if (sign * half_grad_y(i,j) * half_h_grad_y(i,j) <= 0) then
             half_grad_y(i,j) = 0.0
          end if
@@ -174,19 +175,19 @@ subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, 
    end do
 
    !5) Calculate the time tendency lastly.
-   do j = 1, num_cells
-      do i = 1, num_cells 
+   do j = 1, ny
+      do i = 1, nx
          hx_tend(i,j) = (half_grad_x(i,j) - half_grad_x(i-1,j)) / dx
       end do
    end do
-   do i = 1, num_cells
-      do j = 1, num_cells
+   do i = 1, nx
+      do j = 1, ny
          hy_tend(i,j) = (half_grad_y(i,j) - half_grad_y(i,j-1)) / dy
       end do 
    end do
    
-   do j = 1, num_cells
-      do i = 1, num_cells
+   do j = 1, ny
+      do i = 1, nx
         h_tend(i,j) = hx_tend(i,j) + hy_tend(i,j)
       end do 
    end do 
@@ -196,26 +197,25 @@ subroutine diffusion_limiter(h_old, h_tend, num_cells, diffusion_order, dx, dy, 
    deallocate(half_grad_x, half_grad_y, half_h_grad_x, half_h_grad_y)
 end subroutine diffusion_limiter
 
-subroutine full_periodic_boundary_condition(f, num_cells, halo)
-   implicit none
-   integer, intent(in) :: num_cells, halo
-   real, intent(inout) :: f(1-halo:num_cells+halo, 1-halo:num_cells+halo)
+subroutine full_periodic_boundary_condition(f)
+
+   real, intent(inout) :: f(1-halo:nx+halo, 1-halo:ny+halo)
    integer :: i, j
-   do j = 1, num_cells
+   do j = 1, ny
       do i = 1, halo
-         f(1-i, j) = f(num_cells-i+1, j)
-         f(num_cells+i, j) = f(1+i-1, j)
+         f(1-i, j) = f(nx-i+1, j)
+         f(nx+i, j) = f(1+i-1, j)
       end do 
    end do 
-   do i = 1, num_cells
+   do i = 1, nx
       do j = 1, halo
-         f(i, 1-j) = f(i, num_cells-j+1)
-         f(i, num_cells+j) = f(i, 1+j-1)
+         f(i, 1-j) = f(i, ny-j+1)
+         f(i, ny+j) = f(i, 1+j-1)
       end do
    end do 
 end subroutine full_periodic_boundary_condition
 
-end module diffusion_scheme
+end module scheme_mod
 
 
 !! directly apply the 4th order diffusion

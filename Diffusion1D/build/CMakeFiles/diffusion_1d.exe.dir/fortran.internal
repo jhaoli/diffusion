@@ -1,0 +1,7 @@
+# The fortran modules provided by this target.
+provides
+ history_mod.mod
+ mesh_mod.mod
+ namelist_mod.mod
+ scheme_mod.mod
+ state_mod.mod

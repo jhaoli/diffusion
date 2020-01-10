@@ -5,6 +5,6 @@ freq_output = 10 ! output frequency(every so many steps)
 xmin = 0.0
 xmax = 1.0
 halo = 4
-num_cells = 50 ! number of cell in x direction
+nx = 50 ! number of cell in x direction
 diffusion_order = 8
 /

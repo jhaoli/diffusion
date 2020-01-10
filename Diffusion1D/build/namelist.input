@@ -1,0 +1,11 @@
+&params
+time_step_size = 1 
+num_of_time_step = 100 
+freq_output = 10 ! output frequency(every so many steps)
+xmin = 0.0
+xmax = 1.0
+halo = 4
+nx = 50 ! number of cell in x direction
+diffusion_order = 8
+diffusion_method = 'flux_limiter' ! 'flux_limiter' or 'ordinary'
+/

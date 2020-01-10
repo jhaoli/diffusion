@@ -44,17 +44,14 @@ endif ()
 # add_subdirectory(lib/fft)
 
 set(source_files
-  src/diffusion_main.f90
-  src/scheme_mod.f90
+  src/main.F90
+  src/namelist_mod.F90
+  src/scheme_mod.F90
+  src/history_mod.F90
 )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/.mods")
 
 add_executable(diffusion_2d.exe ${source_files})
-target_link_libraries(diffusion_2d.exe
-  ${MPI_Fortran_LIBRARIES} netcdf netcdff)
-if (MPI_Fortran_FOUND)
-  set_target_properties(diffusion_2d.exe PROPERTIES
-    LINK_FLAGS "${MPI_Fortran_LINK_FLAGS}"
-  )
-endif ()
+target_link_libraries(diffusion_2d.exe ${MPI_Fortran_LIBRARIES} netcdf netcdff)
+

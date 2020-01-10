@@ -1,3 +1,3 @@
-/home/qjz/work/study/diffusion/Diffusion2D/build/CMakeFiles/edit_cache.dir
-/home/qjz/work/study/diffusion/Diffusion2D/build/CMakeFiles/diffusion_2d.exe.dir
-/home/qjz/work/study/diffusion/Diffusion2D/build/CMakeFiles/rebuild_cache.dir
+/Users/hao/Documents/work/Models/diffusion/Diffusion2D/build/CMakeFiles/rebuild_cache.dir
+/Users/hao/Documents/work/Models/diffusion/Diffusion2D/build/CMakeFiles/edit_cache.dir
+/Users/hao/Documents/work/Models/diffusion/Diffusion2D/build/CMakeFiles/diffusion_2d.exe.dir
