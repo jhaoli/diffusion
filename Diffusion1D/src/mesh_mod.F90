@@ -28,7 +28,7 @@ contains
 
     mesh%dx = (xmax - xmin)/nx
     
-    mesh%x = [((i-1)*mesh%dx, i = 1, nx)]
+    mesh%x = [(xmin + mesh%dx * 0.5 + (i-1)*mesh%dx, i = 1, nx)]
 
   end subroutine mesh_init
 

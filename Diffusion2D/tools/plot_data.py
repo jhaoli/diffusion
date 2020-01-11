@@ -3,25 +3,28 @@
 
 import os,sys
 import numpy as np
+from netCDF4 import Dataset
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
+if len(sys.argv) < 2:
+  print('python input_file')
+  sys.exit()
+else:
+	fn = sys.argv[1]
 
-data = np.loadtxt('output010.dat')
+f= Dataset(fn, 'r')
+x = f.variables['x'][:]
+y = f.variables['y'][:]
+h = f.variables['rho'][:,:][0]
 
-x = data[:,0]
-y = data[:,1]
-z = data[:,2]
-nx = np.int(np.sqrt(np.shape(x)[0]))
-ny = nx
-X = np.reshape(x,(nx,ny))
-Y = np.reshape(y,(nx,ny))
-Z = np.reshape(z,(nx,ny))
+X, Y = np.meshgrid(x,y)
+
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-ax.plot_surface(X, Y, Z)
+ax.plot_surface(X, Y, h)
 
 ax.set_xlim([0,1])
 ax.set_ylim([0,1])
@@ -32,5 +35,5 @@ ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 
 plt.title('8th order')
-plt.savefig('diff.png', format='png', dpi=200, bbox_inches='tight')
+plt.savefig('res.png', format='png', dpi=300, bbox_inches='tight')
 plt.close(fig)

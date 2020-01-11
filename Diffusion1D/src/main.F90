@@ -7,13 +7,17 @@ program main
   use history_mod
 
   implicit none
-
-  integer :: step
+  
+  real, allocatable :: w_new(:)
+  real, allocatable :: w_tend(:)
   character(256) :: namelist_file_path
+  real :: diffusion_coef
+  integer :: i, step, order, sign
 
   interface
-    subroutine diffusion_interface(rho)
-      real, intent(inout) :: rho(:) 
+    subroutine diffusion_interface(rho, rho_tend)
+      real, intent(in) :: rho(:) 
+      real, intent(out) :: rho_tend(:)
     end subroutine
   end interface 
   procedure(diffusion_interface), pointer :: diffuse
@@ -38,9 +42,19 @@ program main
   call mesh_init()
   call state_init()
   call output(0, state)
+  
+  allocate(w_tend(1:nx))
+  allocate(w_new(1-halo:nx+halo))
 
   do step = 1, num_of_time_step
-    call diffuse(state%rho)
+    call diffuse(state%rho, w_tend)
+    diffusion_coef = 1.0 / time_step_size * (mesh%dx/2.0)**diffusion_order
+    sign = (-1)**(diffusion_order / 2 + 1)
+    do i = 1, nx+1
+       w_new(i) = state%rho(i) + sign * time_step_size * diffusion_coef * w_tend(i)
+    end do
+    call full_periodic_boundary_condition(w_new)
+    state%rho(:) = w_new(:)
     if (mod(step, freq_output) == 0) then
       call output(step, state)
     endif
@@ -49,5 +63,6 @@ program main
    ! Free spaces
   call mesh_final()
   call state_final()
-
+  deallocate(w_tend)
+  deallocate(w_new)
 end program main
