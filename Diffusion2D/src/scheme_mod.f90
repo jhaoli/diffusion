@@ -63,21 +63,21 @@ contains
 
   subroutine diffusion_direct(h_old, h_tend)
     
-  real, intent(in)  :: h_old(1-halo:num_cells+halo, 1-halo:num_cells+halo)
-  real, intent(out) :: h_tend(1:num_cells, 1:num_cells)
+  real, intent(in)  :: h_old(1-halo:nx+halo, 1-halo:ny+halo)
+  real, intent(out) :: h_tend(1:nx, 1:ny)
   integer :: i, j, order
-  real :: h_tmp(1-halo:num_cells+halo, 1-halo:num_cells+halo)
+  real :: h_tmp(1-halo:nx+halo, 1-halo:ny+halo)
 
   h_tmp(:,:) = h_old(:,:)
   do order = 1, diffusion_order / 2
-    do j = 1, num_cells
-      do i = 1, num_cells
+    do j = 1, ny
+      do i = 1, nx
         h_tend(i,j) = (h_tmp(i+1,j) - 2 * h_tmp(i,j) + h_tmp(i-1,j)) / (mesh%dx**2) +&
                       (h_tmp(i,j+1) - 2 * h_tmp(i,j) + h_tmp(i,j-1)) / (mesh%dy**2)
       end do
     end do 
     if(order /= diffusion_order / 2) then
-      h_tmp(1:num_cells, 1:num_cells) = h_tend(1:num_cells, 1:num_cells)
+      h_tmp(1:nx, 1:ny) = h_tend(1:nx, 1:ny)
     end if
   end do
   end subroutine diffusion_direct
