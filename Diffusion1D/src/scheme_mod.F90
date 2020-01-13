@@ -16,8 +16,8 @@ contains
 subroutine diffusion_ordinary(w_old, w_tend)
   ! ∂y/∂t = (-1)^((n/2)+1) * a *∂^n y / ∂x^n
   ! a = 1 / dt * (dx/2)^n
-  real, intent(in)  :: w_old(:)
-  real, intent(out) :: w_tend(:)
+  real, intent(in)  :: w_old(1-halo:nx+halo)
+  real, intent(out) :: w_tend(1:nx)
 
   real w_tmp (1-halo: nx+halo),&
        w_tmp2(1-halo: nx+halo),&
@@ -41,8 +41,8 @@ end subroutine diffusion_ordinary
 
 subroutine diffusion_flux_limiter(w_old, w_tend)
   ! xue ming (2000)
-  real, intent(in) :: w_old(:)
-  real, intent(out) :: w_tend(:)
+  real, intent(in) :: w_old(1-halo:nx+halo)
+  real, intent(out) :: w_tend(1:nx)
   real w_tmp(1-halo: nx+halo), &
        w_tmp2(1-halo: nx+halo)
   real full_flux(1-halo: nx+halo)
@@ -69,13 +69,13 @@ subroutine diffusion_flux_limiter(w_old, w_tend)
   
   ! 3) Calculate gradient of orign data on cell boundary
   do i = 1, nx 
-     half_w_grad(i) = (w_tmp2(i+1) - w_tmp2(i)) / mesh%dx
+     half_w_grad(i) = (w_old(i+1) - w_old(i)) / mesh%dx
   end do 
 
   ! 4) decide the sign on the cell bounday
   sign = (-1)**(diffusion_order / 2 + 1)
   do i = 1, nx
-    if (sign*half_grad(i) * half_w_grad(i) <= 0) then
+    if (sign * half_grad(i) * half_w_grad(i) <= 0) then
       half_grad(i) = 0
     end if
   end do 
