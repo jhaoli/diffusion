@@ -13,15 +13,17 @@ program main
   real, allocatable :: h_tend(:,:)
   real :: diffusion_coef
   integer :: i, j, step, order, sign
+  integer :: lb1, ub1, lb2, ub2
   
   character(256) :: namelist_file_path
-  ! interface
-  !   subroutine diffusion_interface(h, rho_tend)
-  !     real, intent(in) :: h(:,:) 
-  !     real, intent(out) :: rho_tend(:,:)
-  !   end subroutine
-  ! end interface 
-  ! procedure(diffusion_interface), pointer :: diffuse 
+  interface
+    subroutine diffusion_interface(h, rho_tend, lb1, lb2, ub1, ub2, nx, ny)
+      integer, intent(in) :: lb1, lb2, ub1, ub2, nx, ny
+      real, intent(in) :: h(lb1:ub1,lb2:ub2) 
+      real, intent(out) :: rho_tend(1:nx,1:ny)
+    end subroutine
+  end interface 
+  procedure(diffusion_interface), pointer :: diffuse 
 
   call get_command_argument(1, namelist_file_path)
   if (namelist_file_path =='') then
@@ -30,14 +32,14 @@ program main
   end if 
   call parse_namelist(namelist_file_path)
   
-  ! select case(diffusion_method)
+  select case(diffusion_method)
   ! case ('split')
   !   diffuse => diffusion_split
-  ! case ('limiter')
-  !   diffuse => diffusion_limiter
-  ! case default
-  !   write(*,*) 'Unknown diffusion method' // trim(diffusion_method) // '!'
-  ! end select
+  case ('limiter')
+    diffuse => diffusion_limiter
+  case default
+    write(*,*) 'Unknown diffusion method' // trim(diffusion_method) // '!'
+  end select
 
   allocate(h_new(1-halo:nx+halo, 1-halo:ny+halo))
   allocate(h_tend(1:nx, 1:ny))
@@ -47,15 +49,20 @@ program main
   call output(0, state%h(1:nx, 1:ny))
 
   do step = 1, num_of_time_step
-    select case(diffusion_method)
-    case ('split')
-      call diffusion_split(state%h, h_tend)
-    case ('limiter')
-      call diffusion_limiter(state%h, h_tend)
-    case default
-      write(*,*) 'Unknown diffusion method' // trim(diffusion_method) // '!'
-    end select
-    ! call diffusion_split(state%h, h_tend)
+    ! select case(diffusion_method)
+    ! case ('split')
+    !   call diffusion_split(state%h, h_tend)
+    ! case ('limiter')
+    !   call diffusion_limiter(state%h, h_tend)
+    ! case default
+    !   write(*,*) 'Unknown diffusion method' // trim(diffusion_method) // '!'
+    ! end select
+    lb1 = lbound(state%h, 1)
+    ub1 = ubound(state%h, 1)
+    lb2 = lbound(state%h, 2)
+    ub2 = ubound(state%h, 2)
+    call diffuse(state%h, h_tend, lb1, lb2, ub1, ub2, nx, ny)
+
     diffusion_coef = 1.0 / time_step_size * (mesh%dx/2.0)**diffusion_order
     sign = (-1)**(diffusion_order / 2 + 1)
     

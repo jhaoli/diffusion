@@ -82,10 +82,13 @@ contains
   end do
   end subroutine diffusion_direct
 
-  subroutine diffusion_limiter(h_old, h_tend)
-  
-    real, intent(in)  :: h_old(1-halo:nx+halo, 1-halo:ny+halo)
+  subroutine diffusion_limiter(h_old, h_tend, lb1, lb2, ub1, ub2, nx, ny)
+    
+    integer, intent(in) :: lb1, lb2, ub1, ub2, nx, ny
+    ! real, intent(in)  :: h_old(1-halo:nx+halo, 1-halo:ny+halo)
+    real, intent(in)  :: h_old(lb1:ub1, lb2:ub2)
     real, intent(out) :: h_tend(1:nx, 1:ny)
+
     real, allocatable :: hx_tend(:,:), &
                          hy_tend(:,:)
                         
@@ -100,18 +103,19 @@ contains
     allocate(hy_tend(1-halo:nx+halo, 1-halo:ny+halo))
     allocate(hx_tmp (1-halo:nx+halo, 1-halo:ny+halo))
     allocate(hy_tmp (1-halo:nx+halo, 1-halo:ny+halo))
-    allocate(half_grad_x  (0:nx, 1:ny))
-    allocate(half_grad_y  (1:nx, 0:ny))
-    allocate(half_h_grad_x(0:nx, 1:ny))
-    allocate(half_h_grad_y(1:nx, 0:ny))
-  
+    allocate(half_grad_x  (1-halo:nx+halo, 1-halo:ny+halo))
+    allocate(half_grad_y  (1-halo:nx+halo, 1-halo:ny+halo))
+    allocate(half_h_grad_x(1-halo:nx+halo, 1-halo:ny+halo))
+    allocate(half_h_grad_y(1-halo:nx+halo, 1-halo:ny+halo))
+
       ! 1) Calculate even order laplacian
     hx_tmp(:,:) = h_old(:,:)
     do j = 1, ny
       do order = 1, diffusion_order / 2 -1
-        do i = 0, nx+1
+        do i = 1, nx
            hx_tend(i,j) = (hx_tmp(i+1,j) - 2 * hx_tmp(i,j) + hx_tmp(i-1,j)) / (mesh%dx**2)            
         end do
+        call full_periodic_boundary_condition(hx_tend)
         if(order /= diffusion_order / 2 - 1) then
            hx_tmp(:,j) = hx_tend(:,j)
         end if
@@ -124,6 +128,7 @@ contains
         do j = 0, ny+1
            hy_tend(i,j) = (hy_tmp(i,j+1) - 2 * hy_tmp(i,j) + hy_tmp(i,j-1)) / (mesh%dy**2)            
         end do
+        call full_periodic_boundary_condition(hy_tend)
         if(order /= diffusion_order / 2 - 1) then
            hy_tmp(i,:) = hy_tend(i,:)
         end if
@@ -132,24 +137,25 @@ contains
   
     ! 2) Calculate gradient of laplcain above 
     do j = 1, ny
-      do i = 0, nx
+      do i = 1, nx
         half_grad_x(i,j) = (hx_tend(i+1,j) - hx_tend(i,j)) / mesh%dx
       end do 
     end do 
     do i = 1, nx
-      do j = 0, ny
+      do j = 1, ny
         half_grad_y(i,j) = (hy_tend(i,j+1) - hy_tend(i,j)) / mesh%dy
       end do 
     end do
-     
+    call full_periodic_boundary_condition(half_grad_x)
+    call full_periodic_boundary_condition(half_grad_y)
     ! 3) Calculate gradient of the variable be diffused 
     do j = 1, ny
-      do i = 0, nx
+      do i = 1, nx
         half_h_grad_x(i,j) = (h_old(i+1,j) - h_old(i,j)) / mesh%dx
       end do 
     end do 
     do i = 1, nx
-      do j = 0, ny
+      do j = 1, ny
         half_h_grad_y(i,j) = (h_old(i,j+1) - h_old(i,j)) / mesh%dy
       end do 
     end do
@@ -157,20 +163,21 @@ contains
     !4) decide the sign of diffusion flux to be zero or not
     sign = (-1)**(diffusion_order / 2 + 1)
     do j = 1, ny
-      do i = 0, nx
+      do i = 1, nx
         if (sign * half_grad_x(i,j) * half_h_grad_x(i,j) <= 0) then
           half_grad_x(i,j) = 0.0
         end if 
       end do 
     end do 
     do i = 1, nx
-      do j = 0, ny
+      do j = 1, ny
         if (sign * half_grad_y(i,j) * half_h_grad_y(i,j) <= 0) then
           half_grad_y(i,j) = 0.0
         end if
       end do 
     end do
-  
+    call full_periodic_boundary_condition(half_grad_x)
+    call full_periodic_boundary_condition(half_grad_y)
     !5) Calculate the time tendency lastly.
     do j = 1, ny
       do i = 1, nx
